@@ -5,29 +5,31 @@ let selectedSize;
 let displayWidth;
 let displayHeight;
 let canvas;
-let pd = window.devicePixelRatio || 1;
+const pd = 2;
 
 
-// UI
+//UI
 let sliders = {};
 let inputs = {};
 let buttons = {};
 let checkboxes = {};
+let labels = {};
 
 
 //2D
 let img;
-let gridSize = 6 ;
-let symbolString = " ┼:╱╱╱░▒▓ ╱—:╱█";
+let gridSize = 8 ;
+let symbolString = " ·+┼╱｜╲―░▒▓█";
 let symbolColor = [255, 255, 255];
 let symbolScale = 0;
 let indexValue = 0;
 
 
 //3D
+let svgData;
 let defaultSVG = 'assets/default.svg';
 let aspectRatio = 1;
-let shapes = []; // SVG shapes aray
+let shapes = [];
 let dragging = false;
 let posX = 0;
 let posY = 0;
@@ -52,79 +54,38 @@ function createUI() {
 
   // Title
   let label0 = createP(`
-     <span class="label-left"><img src="assets/logo.svg" alt="icon" style="height:15px; vertical-align:bottom"> | STYLIZER<sup> β</sup></span>
+     <span class="label-left"><img src="assets/logo.svg" alt="icon" style="height:13px; position: relative; top: 1.5px;"> STYLIZER<sup> BETA</sup></span>
   `);
   label0.class('label-container');
   label0.parent(uiContainer);
 
   // Description
   let label1 = createP(`
-     <span class="label-left">Drag .png / .jpg<br>to the canvas to stylize<br>a raster image, or .svg<br>to extrude a 3D model.<br><br>Rotate and zoom 3D model with mouse, move around with keyboard arrows.</span>
+     <span class="label-left">UPLOAD JPG / PNG / WEBP<br>TO PROCESS RASTER IMAGE,<br>OR SVG TO EXTRUDE 3D MODEL<br>
+
+<p style="margin-bottom: -10px;">
+  CONTROLS:
+  <span style="display: inline-block; width: 150px;">CLICK & DRAG</span>
+  <span style="float: right;">ROTATE</span>
+  <span style="display: inline-block; width: 150px;">SCROLL</span>
+  <span style="float: right;">ZOOM</span>
+  <span style="display: inline-block; width: 150px;">ARROW KEYS</span>
+  <span style="float: right;">MOVE</span><br><br>
+</p>
+</span>
   `);
   label1.class('label-container');
   label1.parent(uiContainer);
   
+  // Upload Button
+    buttons.upload = createButton(`
+      <span class="center-align">UPLOAD FILE</span>
+    `);
+    buttons.upload.class('button');
+    buttons.upload.mousePressed(() => upload.elt.click());
+    buttons.upload.parent(uiContainer);
+    upload = createFileInput(handleFileDrop).addClass('button').hide();
   
-  // Symbol Size Label
-  let label2 = createP(`
-    <span class="label-left">GRID SIZE</span>
-    <span class="label-right">${gridSize}</span>
-  `);
-  label2.class('label-container');
-  label2.parent(uiContainer);
-
-  // Symbol Size Slider
-  sliders.gridSize = createSlider(6, 40, gridSize);
-  sliders.gridSize.class('slider');
-  sliders.gridSize.input(() => {
-    gridSize = sliders.gridSize.value();
-    label2.html(`
-      <span class="label-left">GRID SIZE</span>
-      <span class="label-right">${gridSize}</span>
-    `);
-  });
-  sliders.gridSize.parent(uiContainer);
-
-  // Symbol Scale Label
-  let label3 = createP(`
-    <span class="label-left">SYMBOL SIZE</span>
-    <span class="label-right">${symbolScale}</span>
-  `);
-  label3.class('label-container');
-  label3.parent(uiContainer);
-
-  // Symbol Scale Slider
-  sliders.symbolScale = createSlider(-10, 10, symbolScale);
-  sliders.symbolScale.class('slider');
-  sliders.symbolScale.input(() => {
-    symbolScale = sliders.symbolScale.value();
-    label3.html(`
-      <span class="label-left">SYMBOL SIZE</span>
-      <span class="label-right">${symbolScale}</span>
-    `);
-  });
-  sliders.symbolScale.parent(uiContainer);
-    
-  // Symbol Shift Label
-  let label4 = createP(`
-    <span class="label-left">SHIFT</span>
-    <span class="label-right">${indexValue}</span>
-  `);
-  label4.class('label-container');
-  label4.parent(uiContainer);
-
-  // Symbol Shift Slider
-  sliders.indexValue = createSlider(0, 15, indexValue);
-  sliders.indexValue.class('slider');
-  sliders.indexValue.input(() => {
-    indexValue = sliders.indexValue.value();
-    label4.html(`
-      <span class="label-left">SHIFT</span>
-      <span class="label-right">${indexValue}</span>
-    `);
-  });
-  sliders.indexValue.parent(uiContainer);
-
   // Symbol String Label
   let label5 = createP(`
     <span class="label-left">SYMBOLS</span>
@@ -142,15 +103,75 @@ function createUI() {
     `);
   });
   inputs.string.parent(uiContainer);
+  
+  
+  // Grid Size Label
+  let label2 = createP(`
+    <span class="label-left">RESOLUTION</span>
+    <span class="label-right">${gridSize}</span>
+  `);
+  label2.class('label-container');
+  label2.parent(uiContainer);
 
+  // Grid Size Slider
+  sliders.gridSize = createSlider(6, 40, gridSize);
+  sliders.gridSize.class('slider');
+  sliders.gridSize.input(() => {
+    gridSize = sliders.gridSize.value();
+    label2.html(`
+      <span class="label-left">RESOLUTION</span>
+      <span class="label-right">${gridSize}</span>
+    `);
+  });
+  sliders.gridSize.parent(uiContainer);
+
+  // Symbol Size Label
+  labels.size = createP(`
+    <span class="label-left">SYMBOL SIZE</span>
+    <span class="label-right">${symbolScale}</span>
+  `);
+  labels.size.class('label-container');
+  labels.size.parent(uiContainer);
+
+  // Symbol Size Slider
+  sliders.symbolScale = createSlider(-10, 10, symbolScale);
+  sliders.symbolScale.class('slider');
+  sliders.symbolScale.input(() => {
+    symbolScale = sliders.symbolScale.value();
+    labels.size.html(`
+      <span class="label-left">SYMBOL SIZE</span>
+      <span class="label-right">${symbolScale}</span>
+    `);
+  });
+  sliders.symbolScale.parent(uiContainer);
+    
+  // Variation Label
+  labels.variation = createP(`
+    <span class="label-left">VARIATION</span>
+    <span class="label-right">${indexValue}</span>
+  `);
+  labels.variation.class('label-container');
+  labels.variation.parent(uiContainer);
+
+  // Symbol Shift Slider
+  sliders.indexValue = createSlider(0, 15, indexValue);
+  sliders.indexValue.class('slider');
+  sliders.indexValue.input(() => {
+    indexValue = sliders.indexValue.value();
+    labels.variation.html(`
+      <span class="label-left">VARIATION</span>
+      <span class="label-right">${indexValue}</span>
+    `);
+  });
+  sliders.indexValue.parent(uiContainer);
 
   
   // Color Label
-  let label6 = createP(`
+  labels.color = createP(`
     <span class="label-left">COLOR</span> 
   `);
-  label6.class('label-container');
-  label6.parent(uiContainer);
+  labels.color.class('label-container');
+  labels.color.parent(uiContainer);
 
   // Color Dropdown List
   inputs.color = createSelect();
@@ -170,74 +191,118 @@ function createUI() {
 
  
   // Extrusion
-  let label7 = createP(`
-    <span class="label-left">EXTRUDE</span>
+  labels.extrusion = createP(`
+    <span class="label-left">EXTRUSION</span>   
   `);
-  label7.class('label-container');
-  label7.parent(uiContainer);
+  //<span class="label-right">${extrusionDepth}</span>
+  labels.extrusion.class('label-container');
+  labels.extrusion.parent(uiContainer);
 
  sliders.extrusion = createSlider(0, 2000, extrusionDepth);
   sliders.extrusion.class('slider');
   sliders.extrusion.input(() => {
     extrusionDepth = sliders.extrusion.value();
-    label7.html(`
-      <span class="label-left">EXTRUDE</span>
-      <span class="label-right">${extrusionDepth}</span>
+    labels.extrusion.html(`
+      <span class="label-left">EXTRUSION</span>
     `);
   });
   sliders.extrusion.parent(uiContainer);
   
-    // Animate checkbox
+  // Animate checkbox
   checkboxes.animate = createCheckbox('ANIMATE', true);
   checkboxes.animate.class('checkbox');
   checkboxes.animate.changed(() => {
-    animate = checkboxes.animate.checked();
+  animate = checkboxes.animate.checked();
   });
   checkboxes.animate.parent(uiContainer);
   
    //Format Label
-  let label8 = createP(`
+  labels.format = createP(`
     <span class="label-left">FORMAT</span>
   `);
-  label8.class('label-container');
-  label8.parent(uiContainer);
+  labels.format.class('label-container');
+  labels.format.parent(uiContainer);
 
-  //Format Dropdown
+  // Format Dropdown
   inputs.format = createSelect();
   inputs.format.class('dropdown');
-  inputs.format.option('1:1', [1080, 1080]);
-  inputs.format.option('9:16', [1080, 1920]);
-  inputs.format.option('16:9', [1920, 1080]);
-  inputs.format.selected('1:1', [1080, 1080]);
-  inputs.format.parent(uiContainer); 
+  inputs.format.option('1080*1080', [540, 540]);
+  inputs.format.option('1080*1920', [540, 960]);
+  inputs.format.option('1920*1080', [960, 540]);
+  inputs.format.option('2048*2048', [1024, 1024]);
+  inputs.format.option('2560*1440 (2K)', [1280, 720]); 
+  inputs.format.option('3840*2160 (4K)', [1920, 1080]); 
+  inputs.format.selected('1:1');
+  inputs.format.parent(uiContainer);
 
- inputs.format.changed(() => {
-  // Capture selected dimensions and set display size
-  selectedSize = inputs.format.value().split(',').map(Number);
-  displayWidth = selectedSize[0];
-  displayHeight = selectedSize[1];
+  inputs.format.changed(() => {
+  
+  let selectedSize = inputs.format.value().split(',').map(Number);
+  let [displayWidth, displayHeight] = selectedSize;
 
-  // Set canvas CSS to match display size without further scaling
-  canvas.style('width', displayWidth + 'px');
-  canvas.style('height', displayHeight + 'px');
+  
+  canvas.style('width', `${displayWidth}px`);
+  canvas.style('height', `${displayHeight}px`);
 
-  // Resize the main canvas with `pd` adjustment for consistent visual size
-  resizeCanvas(displayWidth / pd, displayHeight / pd);
+  
+  resizeCanvas(displayWidth, displayHeight);
 
-  // Resize offscreen buffer for Retina display scaling consistency
-  offscreen = createGraphics(displayWidth * pd, displayHeight * pd, WEBGL);
+  offscreen = createGraphics((displayWidth/2) * pd, (displayHeight/2) * pd, WEBGL);
   offscreen.pixelDensity(pd);
   offscreen.ortho(
     -displayWidth / 2, displayWidth / 2,
     -displayHeight / 2, displayHeight / 2,
     -5000, 5000
   );
+  
+  console.log(`Display Width: ${displayWidth}, Height: ${displayHeight}`);
+  console.log(`Pixel Density: ${pd}`);
+  console.log(`Effective Width: ${displayWidth * pd}, Height: ${displayHeight * pd}`);
+
 });
 
   
+  
+  // Save PNG Button
+  buttons.save = createButton(`
+  <span class="center-align">SAVE AS PNG</span>
+  `);
+  buttons.save.class('button');
+  buttons.save.mousePressed(savePNG);
+  buttons.save.parent(uiContainer);
 
+  // Save text Button
+  buttons.txt = createButton(`
+  <span class="center-align">SAVE AS TXT</span>
+  `);
+  buttons.txt.class('button');
+  buttons.txt.mousePressed(saveASCIIToFile);
+  buttons.txt.parent(uiContainer);
+  
+  // Save video Button
+  buttons.video = createButton(`
+  <span class="center-align">SAVE AS MP4 (SOON)</span>
+  `);
+  buttons.video.class('button-disabled');
+  //buttons.video.mousePressed(saveASCIIToFile);
+  buttons.video.parent(uiContainer);
+  
+    
+
+  
+  // Credits
+  let credits = createP(`
+  <span class="credits">MADE BY <a href="https://www.accuraten.com" target="_blank" class="credits-link">ACCURATEN</a> × <a href="https://www.retry.studio" target="_blank" class="credits-link">RETRY</a><br>FOR <a href="https://www.tonacc.org" target="_blank" class="credits-link">TON ACCELERATOR</a> IN 2025
+  </span>
+  `);
+  //credits.class('label-container');
+  credits.parent(uiContainer);
 }
+
+
 function setup() {
+  console.log('Device Pixel Ratio:', window.devicePixelRatio);
+  frameRate(60);
   loadStrings(defaultSVG, (data) => {
     let svgData = data.join('\n');
     handleFileDrop({ type: 'image', subtype: 'svg+xml', data: svgData });
@@ -280,9 +345,9 @@ function setup() {
     -5000, 5000
   );
 
-  // Set the correct pixel density for the offscreen buffer
-  offscreen.pixelDensity(pd); // Ensures the offscreen buffer matches the scaling
 
+  offscreen.pixelDensity(pd);
+  
 }
 
 function draw() {
@@ -290,56 +355,46 @@ function draw() {
   offscreen.background(0);
   
   handleKeyboardInput();
-  if (animate) {
-    rotationY += 0.1;
-  }
+  if (animate) rotationY += 0.1;
   
-  posZ = extrusionDepth/2;
+  posZ = extrusionDepth / 2;
 
-  // Check if we have an SVG or a raster image
-  if (shapes.length > 0) {
-    // SVG case: Draw the extruded 3D model
-    offscreen.push();
-    offscreen.rotateX(rotationX);
-    offscreen.rotateY(rotationY);
-    offscreen.scale(zoom * pd);
-    offscreen.translate(posX, posY, posZ);
+  
+  offscreen.push();
+  offscreen.rotateX(rotationX);
+  offscreen.rotateY(rotationY);
+  offscreen.scale(zoom * pd);
+  offscreen.translate(posX, posY, posZ);
+
+  if (shapes.length > 0) { //SVG Case
     offscreen.noStroke();
 
-    // Front and back faces
+    let lightDirection = createVector(0, -1, 0); // "Light"
+
     for (let points of shapes) {
-      offscreen.fill(255, 255, 255, 255);
+      // Front and back faces
+      offscreen.fill(255);
       offscreen.beginShape();
       points.forEach(p => offscreen.vertex(p.x, p.y, -extrusionDepth));
       offscreen.endShape(CLOSE);
+
       offscreen.beginShape();
       points.forEach(p => offscreen.vertex(p.x, p.y, 0));
       offscreen.endShape(CLOSE);
 
-      let lightDirection = createVector(0, -1, 0);
-      // Loop through each point and draw connecting faces with shading
-      for (let i = 0; i < points.length; i++) {
-        let next = (i + 1) % points.length;
-
-        // Define the four vertices of the connecting face
+      let n = points.length;
+      for (let i = 0; i < n; i++) {
+        let next = (i + 1) % n;
         let v1 = createVector(points[i].x, points[i].y, -extrusionDepth);
         let v2 = createVector(points[next].x, points[next].y, -extrusionDepth);
         let v3 = createVector(points[next].x, points[next].y, 0);
         let v4 = createVector(points[i].x, points[i].y, 0);
 
         // Calculate normal for the face
-        let edge1 = p5.Vector.sub(v2, v1);
-        let edge2 = p5.Vector.sub(v3, v1);
-        normal = edge1.cross(edge2).normalize();
+        let normal = p5.Vector.sub(v2, v1).cross(p5.Vector.sub(v3, v1)).normalize();
+        let shade = map(normal.dot(lightDirection), -1, 1, 50, 150); // Map the dot product to a shade value
 
-        // Calculate dot product with light direction
-        dot = normal.dot(lightDirection);
-        let shade = map(dot, -1, 1, 50, 150); // Map the dot product to a shade value
-
-        // Set fill color based on the calculated shade
-        offscreen.fill(shade, shade, shade, 255);
-
-        // Draw the connecting face
+        offscreen.fill(shade);
         offscreen.beginShape();
         offscreen.vertex(v1.x, v1.y, v1.z);
         offscreen.vertex(v2.x, v2.y, v2.z);
@@ -348,70 +403,81 @@ function draw() {
         offscreen.endShape(CLOSE);
       }
     }
-    offscreen.pop();
-  } else if (img) {
-    // Raster image case: Draw the image onto the offscreen buffer
+  } else if (img) { // Raster Case
     offscreen.image(img, -width / 2 * pd, -height / 2 * pd, width * pd, height * pd);
   }
 
-  // Load the pixels from the offscreen buffer for symbol generation
-  offscreen.loadPixels();
+  offscreen.pop();
 
-  // Calculate the number of grid columns and rows to cover the canvas
+  offscreen.loadPixels();
   let columns = ceil(width / gridSize);
   let rows = ceil(height / gridSize);
 
-  // Setup text rendering
-  textAlign(CENTER, CENTER);
   textFont(myFont);
+  asciiArt = "";
 
-  push();
-  translate(-width / 2, -height / 2);
+  let pixelData = offscreen.pixels;
+  
+  for (let y = 0; y < rows; y++) {
+    let rowString = ""; // Buffer for the current row
+    for (let x = 0; x < columns; x++) {
+      let imgX = floor(map(x, 0, columns, 0, offscreen.width * pd));
+      let imgY = floor(map(y, 0, rows, 0, offscreen.height * pd));
 
-  // Use the pixel data from the offscreen buffer to render symbols
-  for (let x = 0; x < columns; x++) {
-    for (let y = 0; y < rows; y++) {
-      // Map x and y to image coordinates
-      let imgX = floor(map(x, 0, columns, 0, offscreen.width*pd));
-      let imgY = floor(map(y, 0, rows, 0, offscreen.height*pd));
+      // Calculate the pixel index
+      let i = (imgY * offscreen.width * pd + imgX) * 4;
+      let r = pixelData[i];
+      let g = pixelData[i + 1];
+      let b = pixelData[i + 2];
 
-      let i = (imgY * offscreen.width*pd + imgX) * 4;
-      let r = offscreen.pixels[i];
-      let g = offscreen.pixels[i + 1];
-      let b = offscreen.pixels[i + 2];
-      let a = offscreen.pixels[i + 3];
-
-      // Calculate luminance using the RGB values
       let luma = 0.299 * r + 0.587 * g + 0.114 * b;
-
-      // Map luminance to symbol index, adjusted with indexValue
       let symbolIndex = int(map(luma, 0, 255, 0, symbolString.length)) + indexValue;
       symbolIndex = constrain(symbolIndex, 0, symbolString.length - 1);
 
-      // Get the symbol from the string
       let symbol = symbolString.charAt(symbolIndex);
-
-      // Draw symbol with the specified color and size
-      fill(symbolColor);
-      noStroke();
-      textSize(gridSize + symbolScale);
-
-      // Position symbols centered within each grid cell
-      let posX = x * gridSize + gridSize / 2;
-      let posY = y * gridSize + gridSize / 2;
-
-      text(symbol, posX, posY);
+      rowString += symbol; // Append symbol to the row
     }
+    asciiArt += rowString + "\n"; // Append row to the buffer with a newline
   }
-  pop();
+
+  renderASCIIToCanvas(asciiArt);
+
+  // Save the ASCII art to a text file
+  // saveASCIIToFile();
 }
 
 
-// Rotation
+function renderASCIIToCanvas(ascii) {
+  push();
+  translate(-width / 2, -height / 2);
+
+  let lines = ascii.split("\n");
+  for (let y = 0; y < lines.length; y++) {
+    let line = lines[y];
+    for (let x = 0; x < line.length; x++) {
+      let symbol = line.charAt(x);
+      fill(symbolColor);
+      noStroke();
+      textSize(gridSize + symbolScale);
+      text(symbol, x * gridSize + gridSize / 2, y * gridSize + gridSize / 2);
+    }
+  }
+
+  pop();
+}
+
+function saveASCIIToFile() {
+  let filename = "ascii_art.txt";
+  saveStrings(asciiArt.split("\n"), filename); // Save the buffer as a text file
+}
+
 function mousePressed() {
-  lastMouseX = mouseX;
-  lastMouseY = mouseY;
-  dragging = true;
+  // if (document.activeElement) {
+  //     document.activeElement.blur();
+  //   }
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+    dragging = true;
 }
 function mouseReleased() {
   dragging = false;
@@ -432,12 +498,31 @@ function mouseDragged() {
 
 // Zoom
 function mouseWheel(event) {
-  zoom -= event.delta * 0.001;
-  zoom = constrain(zoom, 0.5, 3);
+  let container = canvasContainer.elt.getBoundingClientRect();
+  
+  if (
+    mouseX >= container.left &&
+    mouseX <= container.right &&
+    mouseY >= container.top &&
+    mouseY <= container.bottom
+  ) {
+    zoom -= event.delta * 0.001;
+    zoom = constrain(zoom, 0.1, 5);
+  }
 }
 
 // Move
 function handleKeyboardInput() {
+
+  const activeElement = document.activeElement;
+  const isControlActive = (
+    activeElement.tagName === 'INPUT' || 
+    activeElement.tagName === 'SELECT' || 
+    activeElement.tagName === 'TEXTAREA' || 
+    activeElement.tagName === 'BUTTON'
+  );
+
+  if (!isControlActive) {
   if (keyIsDown(LEFT_ARROW)) {
     posX -= 10;
   }
@@ -449,13 +534,39 @@ function handleKeyboardInput() {
   }
   if (keyIsDown(DOWN_ARROW)) {
     posY += 10;
-  }
+}
+}
 }
 
-
+// File Handling
 function handleFileDrop(file) {
     if (file.type === 'image' && file.subtype === 'svg+xml') {
-        let svgData = file.data;
+      sliders.extrusion.show();
+      labels.extrusion.show();
+      svgData = file.data;
+      handleSVG(svgData);
+      rotationY = 0;
+      rotationX = 0;
+      animate = true;
+      checkboxes.animate.checked(true);
+      
+    } else if (file.type === 'image'){
+
+    img = loadImage(file.data, () => {
+      img.resize(width, height);
+      rotationY = 0;
+      rotationX = 0;
+      animate = false;
+      checkboxes.animate.checked(false);
+      sliders.extrusion.hide();
+      labels.extrusion.hide();
+      
+    });
+    shapes.length = 0;
+    }
+}
+
+function handleSVG () {
         
         // Handle base64 encoded SVG
         if (svgData.startsWith('data:image/svg+xml;base64,')) {
@@ -598,13 +709,17 @@ function handleFileDrop(file) {
             console.error('Error processing SVG:', error);
             container.remove();
         }
-    } else if (file.type === 'image'){
+}
 
-    img = loadImage(file.data, () => {
-      // Resize the image to fit the canvas
-      img.resize(width, height);
-    });
-    shapes.length = 0;
-    }
+function savePNG() {
+  save(createFileName('tonacc-stylizer', 'png'));
+}
+
+function createFileName(prefix, extension){
+  let now = new Date();
+  let datePart = `${now.getDate()}${now.getMonth() + 1}${now.getFullYear()}`;
+  let timePart = `${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
+  return `${prefix}_${datePart}${timePart}.${extension}`;
+}
 
 }
