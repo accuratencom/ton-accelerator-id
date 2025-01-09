@@ -37,7 +37,7 @@ let posZ = 0;
 let rotationX = 0;
 let rotationY = 0;
 let lastMouseX, lastMouseY;
-let offscreen; // Ofscreen buffer
+let offscreen;
 let zoom = 0.9;
 let extrusionDepth = 50;
 let animate = true;
@@ -86,7 +86,7 @@ function createUI() {
     buttons.upload.parent(uiContainer);
     upload = createFileInput(handleFileDrop).addClass('button').hide();
   
-  // Symbol String Label
+    // Symbol String Label
   let label5 = createP(`
     <span class="label-left">SYMBOLS</span>
   `);
@@ -223,28 +223,28 @@ function createUI() {
   labels.format.class('label-container');
   labels.format.parent(uiContainer);
 
-  // Format Dropdown
-  inputs.format = createSelect();
-  inputs.format.class('dropdown');
-  inputs.format.option('1080*1080', [540, 540]);
-  inputs.format.option('1080*1920', [540, 960]);
-  inputs.format.option('1920*1080', [960, 540]);
-  inputs.format.option('2048*2048', [1024, 1024]);
-  inputs.format.option('2560*1440 (2K)', [1280, 720]); 
-  inputs.format.option('3840*2160 (4K)', [1920, 1080]); 
-  inputs.format.selected('1:1');
-  inputs.format.parent(uiContainer);
+ // Format Dropdown
+inputs.format = createSelect();
+inputs.format.class('dropdown');
+inputs.format.option('1080*1080', [540, 540]);
+inputs.format.option('1080*1920', [540, 960]);
+inputs.format.option('1920*1080', [960, 540]);
+inputs.format.option('2048*2048', [1024, 1024]);
+inputs.format.option('2560*1440 (2K)', [1280, 720]); 
+inputs.format.option('3840*2160 (4K)', [1920, 1080]); 
+inputs.format.selected('1:1'); // Default selected value
+inputs.format.parent(uiContainer);
 
-  inputs.format.changed(() => {
-  
+inputs.format.changed(() => {
+  // Extract dimensions from the selected option
   let selectedSize = inputs.format.value().split(',').map(Number);
   let [displayWidth, displayHeight] = selectedSize;
 
-  
+  // Update canvas style for the display size
   canvas.style('width', `${displayWidth}px`);
   canvas.style('height', `${displayHeight}px`);
 
-  
+  // Resize the main canvas and the offscreen buffer
   resizeCanvas(displayWidth, displayHeight);
 
   offscreen = createGraphics((displayWidth/2) * pd, (displayHeight/2) * pd, WEBGL);
@@ -255,51 +255,49 @@ function createUI() {
     -5000, 5000
   );
   
-  console.log(`Display Width: ${displayWidth}, Height: ${displayHeight}`);
-  console.log(`Pixel Density: ${pd}`);
-  console.log(`Effective Width: ${displayWidth * pd}, Height: ${displayHeight * pd}`);
+console.log(`Display Width: ${displayWidth}, Height: ${displayHeight}`);
+console.log(`Pixel Density: ${pd}`);
+console.log(`Effective Width: ${displayWidth * pd}, Height: ${displayHeight * pd}`);
 
 });
 
   
   
-  // Save PNG Button
-  buttons.save = createButton(`
-  <span class="center-align">SAVE AS PNG</span>
-  `);
-  buttons.save.class('button');
-  buttons.save.mousePressed(savePNG);
-  buttons.save.parent(uiContainer);
+// Save PNG Button
+    buttons.save = createButton(`
+      <span class="center-align">SAVE AS PNG</span>
+    `);
+    buttons.save.class('button');
+    buttons.save.mousePressed(savePNG);
+    buttons.save.parent(uiContainer);
 
-  // Save text Button
-  buttons.txt = createButton(`
-  <span class="center-align">SAVE AS TXT</span>
-  `);
-  buttons.txt.class('button');
-  buttons.txt.mousePressed(saveASCIIToFile);
-  buttons.txt.parent(uiContainer);
+// Save text Button
+    buttons.txt = createButton(`
+      <span class="center-align">SAVE AS TXT</span>
+    `);
+    buttons.txt.class('button');
+    buttons.txt.mousePressed(saveASCIIToFile);
+    buttons.txt.parent(uiContainer);
   
-  // Save video Button
-  buttons.video = createButton(`
-  <span class="center-align">SAVE AS MP4 (SOON)</span>
-  `);
-  buttons.video.class('button-disabled');
-  //buttons.video.mousePressed(saveASCIIToFile);
-  buttons.video.parent(uiContainer);
+// Save video Button
+    buttons.video = createButton(`
+      <span class="center-align">SAVE AS MP4 (SOON)</span>
+    `);
+    buttons.video.class('button-disabled');
+    //buttons.video.mousePressed(saveASCIIToFile);
+    buttons.video.parent(uiContainer);
   
     
 
   
-  // Credits
+// Credits
   let credits = createP(`
-  <span class="credits">MADE BY <a href="https://www.accuraten.com" target="_blank" class="credits-link">ACCURATEN</a> × <a href="https://www.retry.studio" target="_blank" class="credits-link">RETRY</a><br>FOR <a href="https://www.tonacc.org" target="_blank" class="credits-link">TON ACCELERATOR</a> IN 2025
-  </span>
+     <span class="credits">MADE BY <a href="https://www.accuraten.com" target="_blank" class="credits-link">ACCURATEN</a> × <a href="https://www.retry.studio" target="_blank" class="credits-link">RETRY</a><br>FOR <a href="https://www.tonacc.org" target="_blank" class="credits-link">TON ACCELERATOR</a> IN 2025
+</span>
   `);
   //credits.class('label-container');
   credits.parent(uiContainer);
 }
-
-
 function setup() {
   console.log('Device Pixel Ratio:', window.devicePixelRatio);
   frameRate(60);
@@ -345,9 +343,10 @@ function setup() {
     -5000, 5000
   );
 
-
-  offscreen.pixelDensity(pd);
+  // Set the correct pixel density for the offscreen buffer
+  offscreen.pixelDensity(pd); // Ensures the offscreen buffer matches the scaling
   
+
 }
 
 function draw() {
@@ -359,7 +358,7 @@ function draw() {
   
   posZ = extrusionDepth / 2;
 
-  
+  // Check if we have an SVG or a raster image
   offscreen.push();
   offscreen.rotateX(rotationX);
   offscreen.rotateY(rotationY);
@@ -403,7 +402,7 @@ function draw() {
         offscreen.endShape(CLOSE);
       }
     }
-  } else if (img) { // Raster Case
+  } else if (img) { //Raster Case
     offscreen.image(img, -width / 2 * pd, -height / 2 * pd, width * pd, height * pd);
   }
 
@@ -720,6 +719,4 @@ function createFileName(prefix, extension){
   let datePart = `${now.getDate()}${now.getMonth() + 1}${now.getFullYear()}`;
   let timePart = `${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
   return `${prefix}_${datePart}${timePart}.${extension}`;
-}
-
 }
